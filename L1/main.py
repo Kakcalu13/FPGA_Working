@@ -3,18 +3,18 @@
 import math
 import numpy as np
 import cv2
-import matplotlib.pyplot as plt
-from numpy import double
-from scipy.optimize import curve_fit
-import struct
+# import matplotlib.pyplot as plt
+# from numpy import double
+# from scipy.optimize import curve_fit
+# import struct
 import time
 import ok
-import os
-import csv
-import random as rn
-from scipy.sparse.csc import csc_matrix
-# import more_itertools as mit
-from scipy.ndimage import convolve
+# import os
+# import csv
+# import random as rn
+# from scipy.sparse.csc import csc_matrix
+# # import more_itertools as mit
+# from scipy.ndimage import convolve
 
 
 # if ((m_nHDLVersion & 0xFF00) >= 0x0200) {
@@ -113,7 +113,7 @@ dev = ok.okCFrontPanel()
 # Load FPGA program
 dev.OpenBySerial("")
 error = dev.ConfigureFPGA(
-    "./evb1005.bit")  # C:/Users/Rajkumar/PycharmProjects/qDVS_export/qDVS.bit"   C:/Users/BEH1123_Yuyang/Desktop/EVB1005_DVS_FPGA/EVB1005_DVS/EVB1005_DVS.runs/impl_1
+    "C:/Users/ereij/OneDrive/Documents/PITT/FPGA/L1/evb1005.bit")   # "C:/Users/ereij/OneDrive/Documents/PITT/FPGA/L1/evb1005.bit"
 print(error)
 
 dev.SetWireInValue(0x04, 0xfff)
