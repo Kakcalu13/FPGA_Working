@@ -79,6 +79,7 @@ if __name__ == '__main__':
     dev = ok.okCFrontPanel()
 
     # Load FPGA program
+    print(dev.GetDeviceCount())
     dev.OpenBySerial("")
     error = dev.ConfigureFPGA(
         "L1/evb1005.bit")  # C:/Users/Rajkumar/PycharmProjects/qDVS_export/qDVS.bit"   C:/Users/BEH1123_Yuyang/Desktop/EVB1005_DVS_FPGA/EVB1005_DVS/EVB1005_DVS.runs/impl_1
