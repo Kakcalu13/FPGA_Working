@@ -19,32 +19,46 @@ gyro = {}
 def simulation_from_fpga():
     return [np.random.choice([0, 1]) for _ in range(16)]
 
+
+def bitfield(n, length = 16):
+    bf = [int(digit) for digit in bin(n)[2:]]
+    for i in range(length - len(bf)):
+        bf = [0] + bf
+    return bf
 # Function to handle receiving data
 def read_from_port(ser=''):
     global received_data, gyro
     full_data = ''
     dev = ok.okCFrontPanel()
-    dev.OpenBySerial("")  # selects default value
-    error = dev.ConfigureFPGA(
-        r"C:\Users\ereij\OneDrive\Documents\PITT\FPGA\qDVS\CPG_OK_ms.bit")  # change file address as needed
+    dev.OpenBySerial("")
+    error = dev.ConfigureFPGA(r"C:\Users\ereij\OneDrive\Documents\PITT\FPGA\qDVS\CPG_OK.bit")
     print(error)
 
+    # set timing
+    count = 0x08000000
+    clk_f = 200E6
+    tc = int(count) / clk_f
+    print(int(count), tc)
+
     # Reset chip
-    dev.SetWireInValue(0x00, 0b1100)
+    dev.SetWireInValue(0x01, count)  # sets count
+    dev.SetWireInValue(0x00, 0b0010)  # pull both resets and spike in down
     dev.UpdateWireIns()
 
-    # Set both rst_n low (active low reset)
-    dev.SetWireInValue(0x00, 0b0000)
+    time.sleep(tc)
+    dev.SetWireInValue(0x00, 0b1000)  # pull clk_rst_n high
+
+    time.sleep(tc * 10)
+    dev.SetWireInValue(0x00, 0b1101)  # pull rst_n high and start high
     dev.UpdateWireIns()
 
-    # Set clock_rst_n high
-    dev.SetWireInValue(0x00, 0b1000)
+    time.sleep(tc * 1.6)
+    dev.SetWireInValue(0x00, 0b1100)  # pull start low
     dev.UpdateWireIns()
 
-    # Set start signal high
-    dev.SetWireInValue(0x00, 0b1101)
-    dev.UpdateWireIns()
     old_data = 0
+    t_0 = time.time()
+    steps = []
     while True:
         # total_time = (datetime.now() - start_time).total_seconds()
         # if total_time > 1:
@@ -54,34 +68,37 @@ def read_from_port(ser=''):
         data = dev.UpdateWireOuts()
         data = dev.GetWireOutValue(0x20)
         if data != old_data:
-            print(bin(data))
+            # print(bitfield(data), len(bitfield(data)), time.time() - t_0)
+            t_0 = time.time()
+            steps.append(bitfield(data))
         old_data = data
-        reading = data
+        reading = bitfield(data)
         # reading = ser.readline().decode('utf-8').rstrip()
         received_data = reading
-        try:
-            if '#' in received_data:
-                cleaned_data = received_data.replace('#', '')
-                new_data = full_data + cleaned_data
-                new_data = new_data.split(",")
-                processed_data = []
-                for i in new_data:
-                    full_number = str()
-                    for x in i:
-                        if x in [".", "-"] or x.isdigit():
-                            full_number += x
-                    if full_number:
-                        processed_data.append(float(full_number))
-                # Add gyro data into feagi data
-                gyro['gyro'] = {'0': processed_data[0], '1': processed_data[1],
-                                '2': processed_data[2]}
-            else:
-                full_data = received_data # just an array
-                action(full_data)
-        except Exception as Error_case:
-            pass
-            print(Error_case)
-            traceback.print_exc()
+        # try:
+        #     if '#' in received_data:
+        #         cleaned_data = received_data.replace('#', '')
+        #         new_data = full_data + cleaned_data
+        #         new_data = new_data.split(",")
+        #         processed_data = []
+        #         for i in new_data:
+        #             full_number = str()
+        #             for x in i:
+        #                 if x in [".", "-"] or x.isdigit():
+        #                     full_number += x
+        #             if full_number:
+        #                 processed_data.append(float(full_number))
+        #         # Add gyro data into feagi data
+        #         gyro['gyro'] = {'0': processed_data[0], '1': processed_data[1],
+        #                         '2': processed_data[2]}
+        #     else:
+        full_data = received_data # just an array
+        # print("DEBUGGING: ", type(full_data), " and raw data: ", full_data)
+        action(full_data)
+        # except Exception as Error_case:
+        #     pass
+        #     print(Error_case)
+        #     traceback.print_exc()
         # counter += 1
 
 def feagi_to_petoi_id(device_id):
@@ -114,7 +131,7 @@ def action(obtained_data):
         # Append the mapped ID and the adjusted status to the result string
         servo_for_feagi += str(mapped_id) + " " + str(servo_status[servo_id // 2]) + " "
     print("final: ", servo_for_feagi)
-    # ser.write(servo_for_feagi.encode())
+    ser.write(servo_for_feagi.encode())
 
     # fpga ends here:
     # servo_data = actuators.get_servo_data(obtained_data, True)
@@ -172,11 +189,11 @@ if __name__ == "__main__":
     # # - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     # To give ardiuno some time to open port. It's required
-    # ser = serial.Serial('/dev/ttyACM0', 115200)
-    # time.sleep(5)
+    ser = serial.Serial('COM4', 115200)
+    time.sleep(5)
     print("Starting now!")
     for x in range(8):
-        servo_status.append(90)
+        servo_status.append(0)
     read_from_port()
     # while True:
     #     print(simulation_from_fpga())
